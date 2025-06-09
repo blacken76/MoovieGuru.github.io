@@ -13,140 +13,106 @@
         .movie-card:hover {
             transform: scale(1.03);
         }
-        .latest-movies {
-            background-color: #f8f9fa;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 30px;
+        .download-btn {
+            width: 100%;
         }
-        .search-container {
-            margin: 20px 0;
+        .navbar-brand {
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1 class="text-center my-4">Movie Download App</h1>
-        
-        <div class="search-container">
-            <div class="input-group mb-3">
-                <input type="text" id="searchInput" class="form-control" placeholder="Search movies...">
-                <button class="btn btn-primary" id="searchBtn">Search</button>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="#">Movie Download App</a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#">Home</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="admin.html">Admin Login</a>
+                    </li>
+                </ul>
             </div>
         </div>
-        
-        <div class="latest-movies">
-            <h2>Latest Movies</h2>
-            <div class="row" id="latestMovies">
-                <!-- Latest movies will be loaded here -->
-            </div>
-        </div>
-        
-        <h2>All Movies</h2>
+    </nav>
+
+    <div class="container mt-4">
+        <h2 class="text-center mb-4">Available Movies</h2>
         <div class="row" id="moviesContainer">
             <!-- Movies will be loaded here -->
         </div>
     </div>
 
     <!-- Firebase SDK -->
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
-        import { getDatabase, ref, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+const firebaseConfig = {
+    apiKey: "AIzaSyDqd6xRaG2-E18d3EfRZAKG3hNFXuSgfwM",
+    authDomain: "ghorsanatani-9e50c.firebaseapp.com",
+    databaseURL: "https://ghorsanatani-9e50c-default-rtdb.firebaseio.com",
+    projectId: "ghorsanatani-9e50c",
+    storageBucket: "ghorsanatani-9e50c.appspot.com",
+    messagingSenderId: "342593095422",
+    appId: "1:342593095422:web:1444dabd54cd3f218107af",
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDqd6xRaG2-E18d3EfRZAKG3hNFXuSgfwM",
-            authDomain: "ghorsanatani-9e50c.firebaseapp.com",
-            projectId: "ghorsanatani-9e50c",
-            storageBucket: "ghorsanatani-9e50c.appspot.com",
-            messagingSenderId: "342593095422",
-            appId: "1:342593095422:web:1444dabd54cd3f218107af",
-            databaseURL: "https://ghorsanatani-9e50c-default-rtdb.firebaseio.com/"
         };
 
-        const app = initializeApp(firebaseConfig);
-        const database = getDatabase(app);
-        const moviesRef = ref(database, 'movies');
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
 
-        // Load all movies
+        // Load movies from Firestore
         function loadMovies() {
-            onValue(moviesRef, (snapshot) => {
-                const moviesContainer = document.getElementById('moviesContainer');
-                const latestMoviesContainer = document.getElementById('latestMovies');
+            const moviesContainer = document.getElementById('moviesContainer');
+            moviesContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            db.collection("movies").get().then((querySnapshot) => {
                 moviesContainer.innerHTML = '';
-                latestMoviesContainer.innerHTML = '';
                 
-                const movies = [];
-                snapshot.forEach((childSnapshot) => {
-                    movies.push({ id: childSnapshot.key, ...childSnapshot.val() });
-                });
-                
-                // Display all movies
-                movies.forEach(movie => {
-                    moviesContainer.appendChild(createMovieCard(movie));
-                });
-                
-                // Display latest 5 movies
-                const latestMovies = [...movies].reverse().slice(0, 5);
-                latestMovies.forEach(movie => {
-                    latestMoviesContainer.appendChild(createMovieCard(movie));
-                });
-            });
-        }
-
-        // Create movie card element
-        function createMovieCard(movie) {
-            const col = document.createElement('div');
-            col.className = 'col-md-4 col-lg-3';
-            
-            const card = document.createElement('div');
-            card.className = 'card movie-card';
-            
-            const img = document.createElement('img');
-            img.className = 'card-img-top';
-            img.src = movie.posterUrl;
-            img.alt = movie.title;
-            img.style.height = '300px';
-            img.style.objectFit = 'cover';
-            
-            const cardBody = document.createElement('div');
-            cardBody.className = 'card-body';
-            
-            const title = document.createElement('h5');
-            title.className = 'card-title';
-            title.textContent = movie.title;
-            
-            const downloadBtn = document.createElement('a');
-            downloadBtn.href = movie.movieUrl;
-            downloadBtn.className = 'btn btn-primary w-100';
-            downloadBtn.textContent = 'Download';
-            downloadBtn.setAttribute('download', '');
-            
-            cardBody.appendChild(title);
-            cardBody.appendChild(downloadBtn);
-            card.appendChild(img);
-            card.appendChild(cardBody);
-            col.appendChild(card);
-            
-            return col;
-        }
-
-        // Search functionality
-        document.getElementById('searchBtn').addEventListener('click', () => {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const movieCards = document.querySelectorAll('.card');
-            
-            movieCards.forEach(card => {
-                const title = card.querySelector('.card-title').textContent.toLowerCase();
-                if (title.includes(searchTerm)) {
-                    card.parentElement.style.display = 'block';
-                } else {
-                    card.parentElement.style.display = 'none';
+                if (querySnapshot.empty) {
+                    moviesContainer.innerHTML = '<div class="col-12 text-center"><p>No movies available yet.</p></div>';
+                    return;
                 }
+
+                querySnapshot.forEach((doc) => {
+                    const movie = doc.data();
+                    const movieId = doc.id;
+                    
+                    const movieCard = `
+                        <div class="col-md-4 col-sm-6">
+                            <div class="card movie-card">
+                                <img src="${movie.posterUrl}" class="card-img-top" alt="${movie.title}" style="height: 400px; object-fit: cover;">
+                                <div class="card-body">
+                                    <h5 class="card-title">${movie.title}</h5>
+                                    <p class="card-text">${movie.description || ''}</p>
+                                    <a href="${movie.downloadUrl}" class="btn btn-primary download-btn" download>Download</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    moviesContainer.innerHTML += movieCard;
+                });
+            }).catch((error) => {
+                console.error("Error loading movies: ", error);
+                moviesContainer.innerHTML = '<div class="col-12 text-center"><p>Error loading movies. Please try again later.</p></div>';
             });
-        });
+        }
 
         // Load movies when page loads
-        window.addEventListener('load', loadMovies);
+        document.addEventListener('DOMContentLoaded', loadMovies);
     </script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
