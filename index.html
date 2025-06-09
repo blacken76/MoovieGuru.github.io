@@ -1,118 +1,159 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Movie Download App - User Panel</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Movie App - Home</title>
     <style>
+        body { font-family: sans-serif; background-color: #f0f2f5; margin: 0; padding: 20px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .header h1 { color: #333; }
+        .category-filters { text-align: center; margin-bottom: 30px; }
+        .category-filters button {
+            padding: 10px 20px;
+            margin: 5px;
+            border: 1px solid #007bff;
+            background-color: #fff;
+            color: #007bff;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: all 0.3s;
+        }
+        .category-filters button:hover, .category-filters button.active {
+            background-color: #007bff;
+            color: #fff;
+        }
+        #movie-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
         .movie-card {
-            transition: transform 0.3s;
-            margin-bottom: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            text-align: center;
         }
-        .movie-card:hover {
-            transform: scale(1.03);
-        }
-        .download-btn {
+        .movie-card img {
             width: 100%;
+            height: 300px;
+            object-fit: cover;
         }
-        .navbar-brand {
+        .movie-card .download-btn {
+            display: block;
+            width: calc(100% - 20px);
+            margin: 10px;
+            padding: 12px 0;
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
             font-weight: bold;
         }
+        .movie-card .download-btn:hover { background-color: #218838; }
+        #loader { text-align: center; font-size: 1.5em; color: #555; }
     </style>
 </head>
 <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="#">Movie Download App</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
-                    <li class="nav-item">
-                        <a class="nav-link active" href="#">Home</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="admin.html">Admin Login</a>
-                    </li>
-                </ul>
-            </div>
-        </div>
-    </nav>
 
-    <div class="container mt-4">
-        <h2 class="text-center mb-4">Available Movies</h2>
-        <div class="row" id="moviesContainer">
-            <!-- Movies will be loaded here -->
-        </div>
+    <div class="header">
+        <h1>Movies For You</h1>
     </div>
 
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
-    
-    <script>
-        // Firebase configuration
-const firebaseConfig = {
-    apiKey: "AIzaSyDqd6xRaG2-E18d3EfRZAKG3hNFXuSgfwM",
-    authDomain: "ghorsanatani-9e50c.firebaseapp.com",
-    databaseURL: "https://ghorsanatani-9e50c-default-rtdb.firebaseio.com",
-    projectId: "ghorsanatani-9e50c",
-    storageBucket: "ghorsanatani-9e50c.appspot.com",
-    messagingSenderId: "342593095422",
-    appId: "1:342593095422:web:1444dabd54cd3f218107af",
+    <div class="category-filters">
+        <button class="filter-btn active" data-category="all">All</button>
+        <button class="filter-btn" data-category="2025">2025</button>
+        <button class="filter-btn" data-category="2024">2024</button>
+        <button class="filter-btn" data-category="Hollywood">Hollywood</button>
+        <button class="filter-btn" data-category="Bollywood">Bollywood</button>
+    </div>
 
+    <div id="movie-grid"></div>
+    <p id="loader">Loading movies...</p>
+
+    <!-- Firebase SDK Scripts -->
+    <script type="module">
+        // Import functions from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getFirestore, collection, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // Your Firebase configuration is now added here
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqd6xRaG2-E18d3EfRZAKG3hNFXuSgfwM",
+            authDomain: "ghorsanatani-9e50c.firebaseapp.com",
+            projectId: "ghorsanatani-9e50c",
+            storageBucket: "ghorsanatani-9e50c.appspot.com",
+            messagingSenderId: "342593095422",
+            appId: "1:342593095422:web:1444dabd54cd3f218107af"
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
 
-        // Load movies from Firestore
-        function loadMovies() {
-            const moviesContainer = document.getElementById('moviesContainer');
-            moviesContainer.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        const movieGrid = document.getElementById('movie-grid');
+        const loader = document.getElementById('loader');
+        const filterButtons = document.querySelectorAll('.filter-btn');
 
-            db.collection("movies").get().then((querySnapshot) => {
-                moviesContainer.innerHTML = '';
-                
-                if (querySnapshot.empty) {
-                    moviesContainer.innerHTML = '<div class="col-12 text-center"><p>No movies available yet.</p></div>';
-                    return;
+        // Function to fetch and display movies
+        async function fetchMovies(category = 'all') {
+            movieGrid.innerHTML = '';
+            loader.style.display = 'block';
+
+            try {
+                const moviesCollection = collection(db, "movies");
+                let q;
+
+                if (category === 'all') {
+                    q = moviesCollection; // Get all movies
+                } else {
+                    // Get movies by specific category
+                    q = query(moviesCollection, where("category", "==", category));
                 }
-
-                querySnapshot.forEach((doc) => {
-                    const movie = doc.data();
-                    const movieId = doc.id;
-                    
-                    const movieCard = `
-                        <div class="col-md-4 col-sm-6">
-                            <div class="card movie-card">
-                                <img src="${movie.posterUrl}" class="card-img-top" alt="${movie.title}" style="height: 400px; object-fit: cover;">
-                                <div class="card-body">
-                                    <h5 class="card-title">${movie.title}</h5>
-                                    <p class="card-text">${movie.description || ''}</p>
-                                    <a href="${movie.downloadUrl}" class="btn btn-primary download-btn" download>Download</a>
-                                </div>
+                
+                const querySnapshot = await getDocs(q);
+                
+                if(querySnapshot.empty) {
+                    movieGrid.innerHTML = '<p>No movies found in this category.</p>';
+                } else {
+                    querySnapshot.forEach((doc) => {
+                        const movie = doc.data();
+                        const movieCard = `
+                            <div class="movie-card">
+                                <img src="${movie.posterUrl}" alt="Movie Poster">
+                                <a href="${movie.movieUrl}" class="download-btn" download>Download</a>
                             </div>
-                        </div>
-                    `;
-                    
-                    moviesContainer.innerHTML += movieCard;
-                });
-            }).catch((error) => {
-                console.error("Error loading movies: ", error);
-                moviesContainer.innerHTML = '<div class="col-12 text-center"><p>Error loading movies. Please try again later.</p></div>';
-            });
+                        `;
+                        movieGrid.innerHTML += movieCard;
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching movies: ", error);
+                movieGrid.innerHTML = '<p>Error loading movies. Please try again later.</p>';
+            } finally {
+                loader.style.display = 'none';
+            }
         }
 
-        // Load movies when page loads
-        document.addEventListener('DOMContentLoaded', loadMovies);
+        // Event listeners for category filter buttons
+        filterButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                // Manage active class
+                filterButtons.forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+
+                const category = button.getAttribute('data-category');
+                fetchMovies(category);
+            });
+        });
+
+        // Initially load all movies
+        fetchMovies('all');
     </script>
-    
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
 </body>
 </html>
