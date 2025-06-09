@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Movie Download App - User Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .movie-card {
+            transition: transform 0.3s;
+            margin-bottom: 20px;
+        }
+        .movie-card:hover {
+            transform: scale(1.03);
+        }
+        .latest-movies {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        .search-container {
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Movie Download App</h1>
+        
+        <div class="search-container">
+            <div class="input-group mb-3">
+                <input type="text" id="searchInput" class="form-control" placeholder="Search movies...">
+                <button class="btn btn-primary" id="searchBtn">Search</button>
+            </div>
+        </div>
+        
+        <div class="latest-movies">
+            <h2>Latest Movies</h2>
+            <div class="row" id="latestMovies">
+                <!-- Latest movies will be loaded here -->
+            </div>
+        </div>
+        
+        <h2>All Movies</h2>
+        <div class="row" id="moviesContainer">
+            <!-- Movies will be loaded here -->
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js";
+        import { getDatabase, ref, onValue, query, orderByChild, limitToLast } from "https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDqd6xRaG2-E18d3EfRZAKG3hNFXuSgfwM",
+            authDomain: "ghorsanatani-9e50c.firebaseapp.com",
+            projectId: "ghorsanatani-9e50c",
+            storageBucket: "ghorsanatani-9e50c.appspot.com",
+            messagingSenderId: "342593095422",
+            appId: "1:342593095422:web:1444dabd54cd3f218107af",
+            databaseURL: "https://ghorsanatani-9e50c-default-rtdb.firebaseio.com/"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const moviesRef = ref(database, 'movies');
+
+        // Load all movies
+        function loadMovies() {
+            onValue(moviesRef, (snapshot) => {
+                const moviesContainer = document.getElementById('moviesContainer');
+                const latestMoviesContainer = document.getElementById('latestMovies');
+                moviesContainer.innerHTML = '';
+                latestMoviesContainer.innerHTML = '';
+                
+                const movies = [];
+                snapshot.forEach((childSnapshot) => {
+                    movies.push({ id: childSnapshot.key, ...childSnapshot.val() });
+                });
+                
+                // Display all movies
+                movies.forEach(movie => {
+                    moviesContainer.appendChild(createMovieCard(movie));
+                });
+                
+                // Display latest 5 movies
+                const latestMovies = [...movies].reverse().slice(0, 5);
+                latestMovies.forEach(movie => {
+                    latestMoviesContainer.appendChild(createMovieCard(movie));
+                });
+            });
+        }
+
+        // Create movie card element
+        function createMovieCard(movie) {
+            const col = document.createElement('div');
+            col.className = 'col-md-4 col-lg-3';
+            
+            const card = document.createElement('div');
+            card.className = 'card movie-card';
+            
+            const img = document.createElement('img');
+            img.className = 'card-img-top';
+            img.src = movie.posterUrl;
+            img.alt = movie.title;
+            img.style.height = '300px';
+            img.style.objectFit = 'cover';
+            
+            const cardBody = document.createElement('div');
+            cardBody.className = 'card-body';
+            
+            const title = document.createElement('h5');
+            title.className = 'card-title';
+            title.textContent = movie.title;
+            
+            const downloadBtn = document.createElement('a');
+            downloadBtn.href = movie.movieUrl;
+            downloadBtn.className = 'btn btn-primary w-100';
+            downloadBtn.textContent = 'Download';
+            downloadBtn.setAttribute('download', '');
+            
+            cardBody.appendChild(title);
+            cardBody.appendChild(downloadBtn);
+            card.appendChild(img);
+            card.appendChild(cardBody);
+            col.appendChild(card);
+            
+            return col;
+        }
+
+        // Search functionality
+        document.getElementById('searchBtn').addEventListener('click', () => {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const movieCards = document.querySelectorAll('.card');
+            
+            movieCards.forEach(card => {
+                const title = card.querySelector('.card-title').textContent.toLowerCase();
+                if (title.includes(searchTerm)) {
+                    card.parentElement.style.display = 'block';
+                } else {
+                    card.parentElement.style.display = 'none';
+                }
+            });
+        });
+
+        // Load movies when page loads
+        window.addEventListener('load', loadMovies);
+    </script>
+</body>
+</html>
